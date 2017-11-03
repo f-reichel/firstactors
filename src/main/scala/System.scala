@@ -3,6 +3,7 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import message.{AddItem, CreateCart}
 
 import scala.io.StdIn
+import scala.concurrent.duration._
 
 object System extends App {
   println("Starting up my first actor system")
@@ -22,6 +23,9 @@ object System extends App {
 
   cartManagerActor ! AddItem("tom", "socks")
   cartManagerActor ! AddItem("lisa", "book")
+  cartManagerActor ! AddItem("lisa", "computer")
+  cartManagerActor ! AddItem("lisa", "hot dog")
+  cartManagerActor ! AddItem("tom", "pen")
 
   StdIn.readLine()
   system.terminate()
