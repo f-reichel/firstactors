@@ -33,19 +33,13 @@ class CartActor(var id:String) extends Actor {
 
     case CheckOut =>
 
-      val checkOutResult = (paymentActor ? CollectPayment(100.0, "DE12345", "Thanks")).mapTo[PaymentCollectedEvent]
-      .flatMap {
-        paymentEvent => {
-          (deliveryActor ? Deliver(content, "Unistr. 31, Regensburg")).mapTo[DeliveredEvent]
-            .flatMap {
-              deliveredEvent =>
-                (communicationsActor ? SendConfirmation(s"user@mail.com", s"Thanks for buying. Payment id = ${paymentEvent.transactionId}. Tracking id = ${deliveredEvent.trackingId}")).mapTo[SentConfirmationEvent]
-                  .map{ sentEvent =>
-                    CheckedOutEvent(paymentEvent.transactionId, deliveredEvent.trackingId)
-                  }
-            }
-        }
-      }
+
+      val checkOutResult =
+        for {
+          paymentEvent   <- (paymentActor ? CollectPayment(100.0, "DE12345", "Thanks")).mapTo[PaymentCollectedEvent]
+          deliveredEvent <- (deliveryActor ? Deliver(content, "Unistr. 31, Regensburg")).mapTo[DeliveredEvent]
+          sentEvent      <- (communicationsActor ? SendConfirmation(s"user@mail.com", s"Thanks for buying. Payment id = ${paymentEvent.transactionId}. Tracking id = ${deliveredEvent.trackingId}")).mapTo[SentConfirmationEvent]
+        } yield CheckedOutEvent(paymentEvent.transactionId, deliveredEvent.trackingId)
 
 
       checkOutResult.onComplete{
