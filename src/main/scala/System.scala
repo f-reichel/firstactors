@@ -11,7 +11,7 @@ object System extends App {
   val system = ActorSystem("my-first-system")
 
   val firstActor: ActorRef = system.actorOf(Props[FirstActor], "first-actor")
-  val cartManagerActor = system.actorOf(Props[CartManagerActor])
+  val cartManagerActor = system.actorOf(Props[CartManagerActor], "cart-manager")
 
   firstActor ! SayHello("Michael")
   firstActor ! SayHello("Lisa")

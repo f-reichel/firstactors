@@ -20,7 +20,8 @@ class CartManagerActor extends Actor {
 
   override def receive = {
 
-    case CreateCart(id) => context.actorOf(Props(classOf[CartActor], id), "cart-"+id)
+    case CreateCart(id) =>
+      context.actorOf(Props(classOf[CartActor], id), "cart-"+id)
 
     case msg @ AddItem(id, item) =>
       val childRef = context.child("cart-"+id)

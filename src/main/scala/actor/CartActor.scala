@@ -5,6 +5,7 @@ import message._
 import akka.pattern.ask
 import akka.util.Timeout
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
@@ -32,19 +33,29 @@ class CartActor(var id:String) extends Actor {
 
     case CheckOut =>
 
-      (paymentActor ? CollectPayment(100.0, "DE12345", "Thanks")).mapTo[PaymentCollectedEvent]
+      val checkOutResult = (paymentActor ? CollectPayment(100.0, "DE12345", "Thanks")).mapTo[PaymentCollectedEvent]
       .flatMap {
         paymentEvent => {
           (deliveryActor ? Deliver(content, "Unistr. 31, Regensburg")).mapTo[DeliveredEvent]
+            .flatMap {
+              deliveredEvent =>
+                (communicationsActor ? SendConfirmation(s"user@mail.com", s"Thanks for buying. Payment id = ${paymentEvent.transactionId}. Tracking id = ${deliveredEvent.trackingId}")).mapTo[SentConfirmationEvent]
+                  .map{ sentEvent =>
+                    CheckedOutEvent(paymentEvent.transactionId, deliveredEvent.trackingId)
+                  }
+            }
         }
-      }.flatMap {
-        deliveredEvent =>
-          (communicationsActor ? SendConfirmation(s"user@mail.com", "Thanks for buying. Tracking id = ???")).mapTo[SentConfirmationEvent]
-      }.onComplete{
-        case Success(sentEvent) =>
-          println(s"Done all! Went well!")
-          sender() ! "Check out successful"  // TODO!!!!!!!
-        case Failure(failureMessage) =>
       }
+
+
+      checkOutResult.onComplete{
+        case Success(checkedOutEvent) =>
+          println(s"Done all! Went well!")
+          sender() ! checkedOutEvent
+        case Failure(failureMessage) =>
+          println(s"Don't know what to do?!?")  // TODO !!!!!!!!!
+      }
+
+
   }
 }

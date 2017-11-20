@@ -14,7 +14,7 @@ sealed case class SendConfirmation(to: String, msg: String)
 trait EventMessage extends Message
 
 sealed case class AddedItemEvent(item:String) extends EventMessage
-sealed case class CheckedOutEvent() extends EventMessage
+sealed case class CheckedOutEvent(paymentId: String, trackingId: String) extends EventMessage
 sealed case class PaymentCollectedEvent(transactionId: String) extends EventMessage
 sealed case class DeliveredEvent(trackingId: String) extends EventMessage
 sealed case class SentConfirmationEvent() extends EventMessage
