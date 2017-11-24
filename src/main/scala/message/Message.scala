@@ -5,7 +5,7 @@ trait Message
 sealed case class CreateCart(forId: String) extends Message
 sealed case class AddItem(toCart: String, item: String) extends Message
 
-sealed case class CheckOut() extends Message
+sealed case class CheckOut(cartId: String) extends Message
 sealed case class CollectPayment(price: Double, accountId: String, text: String) extends Message
 sealed case class Deliver(items: Map[String, Int], address: String)
 sealed case class SendConfirmation(to: String, msg: String)

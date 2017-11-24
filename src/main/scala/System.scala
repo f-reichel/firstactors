@@ -1,6 +1,6 @@
-import actor.{CartManagerActor, FirstActor, SayHello}
+import actor._
 import akka.actor.{ActorRef, ActorSystem, Props}
-import message.{AddItem, CreateCart}
+import message.{AddItem, CheckOut, CreateCart}
 
 import scala.io.StdIn
 import scala.concurrent.duration._
@@ -12,11 +12,10 @@ object System extends App {
 
   val firstActor: ActorRef = system.actorOf(Props[FirstActor], "first-actor")
   val cartManagerActor = system.actorOf(Props[CartManagerActor], "cart-manager")
+  system.actorOf(Props[PaymentActor], "payment-actor")
+  system.actorOf(Props[DeliveryActor], "delivery-actor")
+  system.actorOf(Props[CommunicationsActor], "communications-actor")
 
-  firstActor ! SayHello("Michael")
-  firstActor ! SayHello("Lisa")
-  firstActor ! "This is a String message"
-  firstActor ! SayHello("Tom")
 
   cartManagerActor ! CreateCart("tom")
   cartManagerActor ! CreateCart("lisa")
@@ -26,6 +25,8 @@ object System extends App {
   cartManagerActor ! AddItem("lisa", "computer")
   cartManagerActor ! AddItem("lisa", "hot dog")
   cartManagerActor ! AddItem("tom", "pen")
+
+  cartManagerActor ! CheckOut("tom")
 
   StdIn.readLine()
   system.terminate()
