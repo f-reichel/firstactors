@@ -1,6 +1,6 @@
 package actor
 
-import akka.actor.{Actor, ActorRef, ActorSelection}
+import akka.actor.{Actor}
 import message._
 import akka.pattern.ask
 import akka.util.Timeout
@@ -31,6 +31,8 @@ class CartActor(var id:String) extends Actor {
       sender() ! AddedItemEvent(item)
 
     case CheckOut(forId) =>
+      if(forId != id)
+        throw new CartStateException(s"check out received for $forId but I am $id")
       val checkOutResult =
         for {
           paymentEvent   <- (paymentActor ? CollectPayment(100.0, "DE12345", s"Thanks $forId")).mapTo[PaymentCollectedEvent]
@@ -44,7 +46,7 @@ class CartActor(var id:String) extends Actor {
           sender() ! checkedOutEvent
         case Failure(failureMessage) =>
           println(s"Don't know what to do?!?")
-        failureMessage.printStackTrace()// TODO !!!!!!!!!
+          failureMessage.printStackTrace() // TODO !!!!!!!!!
       }
 
 

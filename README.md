@@ -1,8 +1,13 @@
 # First actors project
 
-Use this link to view the code example developed during the course in weeks 43 and 44.
+Use this link to view the code example developed during the course in weeks 43 to 48.
 
 If you want to download the example and stay up to date feel free to clone the project.
+
+## Weeks 47 + 48
+
+- Supervision
+- Persistent actors
 
 ## Weeks 45 + 46
 
