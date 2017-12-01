@@ -3,7 +3,7 @@ package actor
 import java.lang.IllegalStateException
 
 import akka.actor.SupervisorStrategy.{Escalate, Restart, Resume, Stop}
-import akka.actor.{Actor, OneForOneStrategy, Props, SupervisorStrategy}
+import akka.actor.{Actor, ActorLogging, OneForOneStrategy, Props, SupervisorStrategy}
 import message._
 import akka.pattern.ask
 import akka.util.Timeout
@@ -13,7 +13,7 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 
-class CartManagerActor extends Actor {
+class CartManagerActor extends Actor with ActorLogging {
 
   // additional two implicitly available objects needed for Futures
   implicit val executionContext = context.dispatcher
@@ -39,10 +39,10 @@ class CartManagerActor extends Actor {
         case Some(cartRef) =>
           val result: Future[AddedItemEvent] = (cartRef ? msg).mapTo[AddedItemEvent] // ? = ask function, returns a Future[Any] - if not mapped to a specified type
           result onComplete { // onComplete takes a function object of type: Try[T] => U
-            case Success(event)   => println(s"Received event: $event")
-            case Failure(failure) => println(s"Failed while waiting for event: ${failure.getMessage}")
+            case Success(event)   => log.info(s"Received event: $event")
+            case Failure(failure) => log.info(s"Failed while waiting for event: ${failure.getMessage}")
           }
-        case None => println(s"no such cart (yet) with id $id")
+        case None => log.info(s"no such cart (yet) with id $id")
       }
   }
 
