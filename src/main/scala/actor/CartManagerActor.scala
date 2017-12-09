@@ -25,6 +25,7 @@ class CartManagerActor extends Actor with ActorLogging {
 
     case CreateCart(id) =>
       context.actorOf(Props(classOf[CartActor], id), "cart-"+id)
+
     case msg @ CheckOut(forId) =>
       val childRef = context.child("cart-"+forId)
       childRef match {
@@ -34,13 +35,17 @@ class CartManagerActor extends Actor with ActorLogging {
       }
     case msg @ AddItem(id, item) =>
       val childRef = context.child("cart-"+id)
+      val sentFrom = sender()
       childRef match {
 
         case Some(cartRef) =>
           val result: Future[AddedItemEvent] = (cartRef ? msg).mapTo[AddedItemEvent] // ? = ask function, returns a Future[Any] - if not mapped to a specified type
           result onComplete { // onComplete takes a function object of type: Try[T] => U
-            case Success(event)   => log.info(s"Received event: $event")
-            case Failure(failure) => log.info(s"Failed while waiting for event: ${failure.getMessage}")
+            case Success(event)   =>
+              log.info(s"Received event: $event. sender was: ${sender().toString}")
+              sentFrom ! event
+            case Failure(failure) =>
+              log.info(s"Failed while waiting for event: ${failure.getMessage}")
           }
         case None => log.info(s"no such cart (yet) with id $id")
       }

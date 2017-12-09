@@ -1,19 +1,32 @@
 import actor._
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
-import message.{AddItem, CheckOut, CreateCart}
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage}
+import message._
 
 import scala.concurrent.Future
 import scala.io.StdIn
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
+import spray.json.DefaultJsonProtocol
+import akka.pattern.ask
+import akka.util.Timeout
 
-object System extends App {
+import scala.util.{Failure, Random, Success}
+import scala.concurrent.duration._
+
+object System extends App with DefaultJsonProtocol with SprayJsonSupport {
   println("Starting up my first actor system")
 
   implicit val system = ActorSystem("my-first-system")
   implicit val materializer = ActorMaterializer()
   implicit val dispatcher = system.dispatcher
+  implicit val timeout = Timeout(10 seconds)
+
+  implicit val addItemFormat = jsonFormat2(AddItem)
+  implicit val addedItemEventFormat = jsonFormat1(AddedItemEvent)
+  implicit val checkedOutEventFormat = jsonFormat2(CheckedOutEvent)
 
   val port = 8087
   val host = "localhost"
@@ -28,28 +41,44 @@ object System extends App {
   // configuration  verb+path to "method" table
   val paths =
     pathPrefix("api" / "v1") {
-      path("cart") {
+      path("hello") {
         get {
           // function is called when receiving path "/api/v1/cart" with GET
           complete("hello world")
         }
+      } ~
+      path("cart" / Segment / "item") { userName => { // userName is taken from path (from variable "Segment")
+          post {
+            entity(as[AddItem]) { (addedItem) =>
+              onComplete((cartManagerActor ? addedItem.copy(toCart = userName)).mapTo[AddedItemEvent]) {
+                case Success(e)  => complete(201, e) // 201=CREATED
+                case Failure(ex) => complete(503, ex.getMessage) // 503=SERVICE UNAVAILABLE
+              }
+            }
+          }
+        }
+      } ~
+      path("cart" / Segment) { userName => // userName is taken from path (from variable "Segment")
+          post {
+            cartManagerActor ! CreateCart(userName)
+            // no onCompelte with future here since only telling not asking (no reply from managing actor)
+            complete(201, userName) // 201=CREATED
+          }
+      } ~
+      path("cart" / Segment) { userName => {
+          delete { // delete used as "checking out"
+            onComplete((cartManagerActor ? CheckOut(userName)).mapTo[AddedItemEvent]) {
+              case Success(e) => complete(200, e) // 200=OK
+              case Failure(ex) => complete(503, ex.getMessage) // 503=SERVICE UNAVAILABLE
+            }
+          }
+        }
       }
     }
 
+
   val webserverHandle : Future[Http.ServerBinding] = Http().bindAndHandle(paths, host, port)
 
-  /*
-  cartManagerActor ! CreateCart("tom")
-  cartManagerActor ! CreateCart("lisa")
-
-  cartManagerActor ! AddItem("tom", "socks")
-  cartManagerActor ! AddItem("lisa", "book")
-  cartManagerActor ! AddItem("lisa", "computer")
-  cartManagerActor ! AddItem("lisa", "hot dog")
-  cartManagerActor ! AddItem("tom", "pen")
-
-  cartManagerActor ! CheckOut("tom")
-*/
 
   println(s"Webserver started, listening on $host:$port")
   println(s"Press any key to shutdown")

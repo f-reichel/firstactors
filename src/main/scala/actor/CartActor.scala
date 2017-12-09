@@ -29,7 +29,7 @@ class CartActor(var id:String) extends PersistentActor with ActorLogging {
   def addItem(event:AddItemPersistenceEvent) = {
     log.info(s"adding ${event.item} to cart of ${event.id}")
     content = content + (event.item -> 1)
-    log.info(s"cart of ${event.id} is no containing: $content")
+    log.info(s"cart of ${event.id} is now containing: $content")
     sender() ! AddedItemEvent(event.item)
   }
 
