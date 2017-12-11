@@ -1,3 +1,5 @@
+import java.util.UUID
+
 import actor._
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
@@ -11,6 +13,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import spray.json.DefaultJsonProtocol
 import akka.pattern.ask
+import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.util.Timeout
 
 import scala.util.{Failure, Random, Success}
@@ -74,11 +77,37 @@ object System extends App with DefaultJsonProtocol with SprayJsonSupport {
           }
         }
       }
-    }
+    } ~
+    pathPrefix("ws" / "v1") {
+      path("hello") {
+        // create new WebSocket handler
+        handleWebSocketMessages(newWebSocketHandler)
+      }
+  }
 
 
   val webserverHandle : Future[Http.ServerBinding] = Http().bindAndHandle(paths, host, port)
 
+  def newWebSocketHandler: Flow[Message, Message, Any] = {
+    // TODO: create a dedicated actor for this ws connection
+
+    val handlerId = UUID.randomUUID().toString
+    println(s"WS handler created with id $handlerId")
+
+    Flow[Message].mapConcat {
+      case tm: TextMessage =>
+        println(s"WS handler $handlerId received message $tm")
+        TextMessage(Source.single(s"This is your dedicated handler $handlerId: You said $tm I say hi")) :: Nil
+      case bm: BinaryMessage =>
+        // ignore binary messages and ignore (i.e. delete) message
+        println(s"WS handler $handlerId received binary message")
+        bm.dataStream.runWith(Sink.ignore)
+        Nil
+      case m =>
+        println(s"WS handler $handlerId received message $m")
+        Nil
+    }
+  }
 
   println(s"Webserver started, listening on $host:$port")
   println(s"Press any key to shutdown")
